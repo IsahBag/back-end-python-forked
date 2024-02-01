@@ -18,3 +18,5 @@ def imprimir_no_log(texto, nivel='info'):
         print(colorama.Style.RESET_ALL + texto)
     else:
         print(colorama.Fore.RED + 'Erro interno - nível desconhecido de mensagem' + colorama.Style.RESET_ALL)
+
+imprimir_no_log('Bom dia!')
