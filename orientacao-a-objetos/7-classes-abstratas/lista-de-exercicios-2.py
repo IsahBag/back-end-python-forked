@@ -14,12 +14,12 @@
 import colorama
 colorama.init()
 
-from abc import ABC, abstractmethod
-
-class Pessoa(ABC):
-    def __init__(self, nome, telefone):
+class Pessoa:
+    def __init__(self, nome, telefone, renda, sexo):
         self.__nome = nome
-        self.__telefone = telefone        
+        self.__telefone = telefone
+        self.__renda = renda
+        self.__sexo = sexo
 
     @property
     def nome(self):
@@ -28,7 +28,7 @@ class Pessoa(ABC):
     @nome.setter
     def nome(self, novo_nome):
         self.__nome = novo_nome
-            
+
     @property
     def telefone(self):
         return self.__telefone
@@ -37,19 +37,6 @@ class Pessoa(ABC):
     def telefone(self, novo_telefone):
         self.__telefone = novo_telefone
 
- 
-
-class Cliente(Pessoa):
-    def __init__(self, nome, telefone, renda, sexo):
-        super().__init__(nome, telefone)
-        self.__sexo = sexo
-        self.__renda = renda         
-        self.saldo = 0      
-        if self.__sexo == 'F':
-             self.saldo_min = -renda 
-        else:
-            self.saldo_min = 0
-
     @property
     def renda(self):
         return self.__renda
@@ -57,6 +44,7 @@ class Cliente(Pessoa):
     @renda.setter
     def renda(self, nova_renda):
         self.__renda = nova_renda
+        self.ativar_cheque_especial()
 
     @property
     def sexo(self):
@@ -64,64 +52,76 @@ class Cliente(Pessoa):
     
     @sexo.setter
     def sexo(self, novo_sexo):
-        self.__sexo = novo_sexo     
-    
+        self.__sexo = novo_sexo
+        self.ativar_cheque_especial()
+
+class Cliente(Pessoa):
+    def __init__(self, nome, telefone, renda, sexo, conta_corrente):
+        super().__init__(nome, telefone, renda, sexo)
+        self.cheque_especial = False
+        self.saldo = 0
+        self.conta_corrente = conta_corrente
+        self.ativar_cheque_especial()
+
+    def ativar_cheque_especial(self):
+        if self.sexo == 'F' and self.renda > 0:
+            self.cheque_especial = True
+        else:
+            self.cheque_especial = False
+
     def sacar(self, valor):
-        if self.__sexo == 'M' and self.saldo - valor < 0:
-            print(colorama.Fore.RED + "Operação excede o limite do cheque especial para o cliente masculino.")
-            return False
-        elif self.__sexo == 'F' and self.saldo - valor < - self.__renda:
-            print(colorama.Fore.RED + "Operação excede o limite do cheque especial para a cliente feminina.")
-            return False
-        else:        
+        if self.cheque_especial or self.saldo >= valor:
             self.saldo -= valor
-            return True
+            self.conta_corrente.registrar_operacao("Saque", valor)
+            print('Saque realizado com sucesso!')
+        else:
+            print('Não há saldo disponível para sacar o valor indicado!')
 
     def depositar(self, valor):
         self.saldo += valor
+        self.conta_corrente.registrar_operacao("Depósito", valor)
+        print('Depósito realizado com sucesso!')
 
-    def __str__(self):
+    def __str__(self) -> str:
         return(f'Cliente: {self.nome}\n' +
                f'Telefone: {self.telefone}\n' +
-               f'Renda Mensal: {self.__renda}\n' +
-               f'Sexo: {self.__sexo}\n' +
-               f'Saldo: {self.saldo}')
-
+               f'Renda: {self.renda}\n' +
+               f'Sexo: {self.sexo}\n' +
+               f'Saldo: {self.saldo}\n')
 
 class Conta_corrente:
-    def __init__(self, clientes):
-        self.saldo = 0
-        self.clientes = clientes
+    def __init__(self, titular, saldo=0):
+        self.titular = titular
+        self.saldo = saldo
+        self.lista_operacoes = []
 
-    def sacar(self, valor):
-        for cliente in self.clientes:
-            if not cliente.sacar(valor):
-                return False
-        self.saldo -= valor
-        return True
+    def registrar_operacao(self, operacao, valor):
+        self.lista_operacoes.append((operacao, valor))
 
-    def depositar(self, valor):
-        for cliente in self.clientes:
-            cliente.depositar(valor)
-        self.saldo += valor
+    def mostrar_operacoes(self):
+        for operacao in self.lista_operacoes:
+            print(operacao)
 
-    def __str__(self):
-        clientes_str = '\n\n'.join(str(cliente) for cliente in self.clientes)
-        return f"Saldo da Conta Corrente: {self.saldo}\n\nDetalhes dos Clientes:\n{clientes_str}"
+# Criando uma instância de Cliente
+cliente1 = Cliente('Flavia', '1234555', 4657.90, 'F', None)
 
+# Criando uma instância de Conta_corrente passando o cliente
+conta_corrente1 = Conta_corrente(cliente1, 1000)
+cliente1.conta_corrente = conta_corrente1
 
-# Exemplo de uso do programa
-cliente1 = Cliente("Maria", "123456789", 3000, "F")
-cliente2 = Cliente("João", "987654321", 2500, "M")
+# Executando algumas operações
+cliente1.depositar(500)
+cliente1.sacar(200)
 
-conta = Conta_corrente([cliente1])
+# Consultando as operações
+conta_corrente1.mostrar_operacoes()
 
+# Imprimindo os dados do cliente
 print(cliente1)
 
-conta.depositar(1000)
-print("Saldo após depósito:")
-print(conta)
+# Realizando outro saque
+cliente1.sacar(1000)
 
-conta.sacar(200)
-print("Saldo após saque:")
-print(conta)
+# Consultando o saldo do cliente
+saldo_cliente = cliente1.saldo
+print(f"Saldo do cliente: {saldo_cliente}")
